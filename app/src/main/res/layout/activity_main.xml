@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:id="@+id/DelayLayout"
+        style="@style/middleLayout"
+        android:background="#AEE0DD"
+        app:layout_constraintBottom_toTopOf="@id/resultLayout"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            style="@style/DelayTextConfig"
+            android:text="DelayTime" />
+
+        <TextView
+            android:id="@+id/DelayTime"
+            style="@style/DelayTextConfig"
+            android:text=" - " />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/resultLayout"
+        style="@style/middleLayout"
+        android:background="#01ACBD"
+        app:layout_constraintBottom_toTopOf="@+id/ControllerBox"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/DelayLayout">
+
+        <LinearLayout
+            style="@style/middleLayout"
+            android:layout_height="match_parent"
+            android:id="@+id/resultView"
+            >
+            <TextView
+                style="@style/areaTextConfig"
+                android:textSize="10pt"
+                android:text="clickHere for details"/>
+            <TextView
+                style="@style/areaTextConfig"
+                android:text="result" />
+
+            <TextView
+                android:id="@+id/result_tv"
+                style="@style/areaTextConfig"
+                android:text="areaValue" />
+        </LinearLayout>
+
+        <LinearLayout
+            style="@style/middleLayout"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:id="@+id/detailView"
+            android:visibility="gone"
+            >
+            <TextView
+                style="@style/subResultTxt"
+                android:text="Restaurant\nMarket\nBus\nRoad\nFactory\nCoffeeShop\nSubway\nOffice\nBicycle" />
+            <TextView
+                style="@style/subResultTxt"
+                android:text="0%\n0%\n0%\n0%\n0%\n0%\n0%\n0%\n0%"
+                />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ControllerBox"
+        style="@style/middleLayout"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/resultLayout">
+
+        <Button
+            android:id="@+id/recordTriggerBTN"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#735B69"
+            android:paddingVertical="20dp"
+            android:text="Record"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
