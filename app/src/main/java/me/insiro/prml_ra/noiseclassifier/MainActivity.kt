@@ -1,10 +1,11 @@
+@file:Suppress("DEPRECATION")
+
 package me.insiro.prml_ra.noiseclassifier
 
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.os.Bundle
 import android.os.Environment
-import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.widget.*
@@ -17,51 +18,49 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.io.*
 import java.net.Socket
 import java.util.*
-import kotlin.concurrent.timer
 import org.json.JSONObject
-import org.json.JSONStringer
 
 
 class MainActivity : AppCompatActivity() {
     private val filePath: String =
-        Environment.getExternalStorageDirectory().absolutePath + "/recordResult.wav"
+        Environment.getExternalStorageDirectory().absolutePath + "/recordResult.wav";
     private val jsonPath: String =
-        Environment.getExternalStorageDirectory().absolutePath + "/temp.json"
-    private val waveRecorder = WaveRecorder(filePath)
-    private val writer: Thread = SocketWriter()
-    private var timer: Timer? = null
-    private val btnOnClickListener = BtnOnClickListener()
-    private val delayTime: Long = 6000
+        Environment.getExternalStorageDirectory().absolutePath + "/temp.json";
+    private val waveRecorder = WaveRecorder(filePath);
+    private lateinit var writer: Thread;
+    private var timer: Timer? = null;
+    private val btnOnClickListener = BtnOnClickListener();
+    private val delayTime: Long = 6000;
     private var host = "";
     private var port = 3389;
-    private var inComingValue: String = ""
+    private var inComingValue: String = "";
 
     //Socket
-    private var socket: Socket? = null
-    private var isRunning: Boolean = false
-    private lateinit var inputFromServer: BufferedReader
-    private lateinit var outToServer: BufferedWriter
-    private lateinit var outStream: DataOutputStream
-    private lateinit var jsonInputStream: ObjectInputStream
+    private var socket: Socket? = null;
+    private var isRunning: Boolean = false;
+    private lateinit var inputFromServer: BufferedReader;
+    private lateinit var outToServer: BufferedWriter;
+    private lateinit var outStream: DataOutputStream;
+    private lateinit var jsonInputStream: ObjectInputStream;
 
-    private lateinit var inputStream: InputStream
-    private lateinit var json: JSONObject
-    private lateinit var jsonString: String
-    private lateinit var outputStreams: OutputStream
+    private lateinit var inputStream: InputStream;
+    private lateinit var json: JSONObject;
+    private lateinit var jsonString: String;
+    private lateinit var outputStreams: OutputStream;
 
 
     //region Audio Variable
-    private val SAMPLE_RATE: Int = 22050
-    private val RECORDER_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO
-    private val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT
+    private val SAMPLE_RATE: Int = 22050;
+    private val RECORDER_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO;
+    private val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     //endregion
 
     //Main layout Components
-    private lateinit var areaValueTextView: TextView
-    private lateinit var delayTimeTextView: TextView
+    private lateinit var areaValueTextView: TextView;
+    private lateinit var delayTimeTextView: TextView;
 
     //Dialog layout Components
-    private lateinit var accessDialog: AlertDialog
+    private lateinit var accessDialog: AlertDialog;
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,65 +68,67 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         //region mapping Components
-        areaValueTextView = findViewById<TextView>(R.id.result_tv)
-        delayTimeTextView = findViewById<TextView>(R.id.DelayTime)
-        val detailViewer: LinearLayout = findViewById<LinearLayout>(R.id.detailView)
-        val resultView: LinearLayout = findViewById<LinearLayout>(R.id.resultView)
-        val recordTrigger: Button = findViewById<Button>(R.id.recordTriggerBTN)
-        val accessDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(this)
-        val dialogView = layoutInflater.inflate(R.layout.host_info_layout, null)
-        val hostEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_ip)
-        val portEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_Port)
-        recordTrigger.setOnClickListener(btnOnClickListener)
-        detailViewer.setOnClickListener(btnOnClickListener)
-        resultView.setOnClickListener(btnOnClickListener)
+        areaValueTextView = findViewById<TextView>(R.id.result_tv);
+        delayTimeTextView = findViewById<TextView>(R.id.DelayTime);
+        val detailViewer: LinearLayout = findViewById<LinearLayout>(R.id.detailView);
+        val resultView: LinearLayout = findViewById<LinearLayout>(R.id.resultView);
+        val recordTrigger: Button = findViewById<Button>(R.id.recordTriggerBTN);
+        val accessDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(this);
+        val dialogView = layoutInflater.inflate(R.layout.host_info_layout, null);
+        val hostEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_ip);
+        val portEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_Port);
+        recordTrigger.setOnClickListener(btnOnClickListener);
+        detailViewer.setOnClickListener(btnOnClickListener);
+        resultView.setOnClickListener(btnOnClickListener);
         //endregion
 
         //region waveRecorder Config
         waveRecorder.waveConfig.sampleRate = SAMPLE_RATE;
         waveRecorder.waveConfig.channels = RECORDER_CHANNELS;
         waveRecorder.waveConfig.audioEncoding = AUDIO_ENCODING;
-        waveRecorder.onAmplitudeListener = { Log.i("TAG", "Amplitude : $it") }
+        waveRecorder.onAmplitudeListener = { Log.i("TAG", "Amplitude : $it") };
         //endregion
 
-        getPermission()
+        getPermission();
         //region accessDialog
-        accessDialogBuilder.setTitle("Information for Access server")
-        accessDialogBuilder.setView(dialogView)
+        accessDialogBuilder.setTitle("Information for Access server");
+        accessDialogBuilder.setView(dialogView);
         accessDialogBuilder.setPositiveButton("Access") { dialog, id ->
-            host = hostEditText.text.toString()
-            var pstring = portEditText.text.toString()
-            if (pstring.toIntOrNull() == null) return@setPositiveButton
-            port = pstring.toInt()
+            host = hostEditText.text.toString();
+            val pstring:String = portEditText.text.toString();
+            if (pstring.toIntOrNull() == null) return@setPositiveButton;
+            port = pstring.toInt();
             if (host == "") {
-                Toast.makeText(applicationContext, "need To insert IP", Toast.LENGTH_SHORT)
+                Toast.makeText(applicationContext, "need To insert IP", Toast.LENGTH_SHORT).show();
             } else {
-                writer.start()
+                writer = SocketWriter();
+                writer.start();
             }
         }
-        accessDialogBuilder.setNegativeButton("Cancel", null)
-        accessDialog = accessDialogBuilder.create()
+        accessDialogBuilder.setNegativeButton("Cancel", null);
+        accessDialog = accessDialogBuilder.create();
         //endregion
 
     }
 
     private fun turnOffRunning(e: Exception? = null) {
-        e?.printStackTrace()
-        Log.d("state", "stop")
-        runOnUiThread { recordTriggerBTN.text = "Record" }
-        timer?.cancel()
-        isRunning = false
+        e?.printStackTrace();
+        Log.d("state", "stop");
+        writer.interrupt();
+        timer?.cancel();
         try {
-            timer?.cancel()
+            timer?.cancel();
             if (socket != null) {
-                socket?.close()
-                socket = null
+                socket?.close();
+                socket = null;
             }
 
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.printStackTrace();
         } finally {
-            waveRecorder.stopRecording()
+            waveRecorder.stopRecording();
+            runOnUiThread { recordTriggerBTN.text = "Record" };
+            isRunning = false;
         }
     }
 
@@ -136,175 +137,104 @@ class MainActivity : AppCompatActivity() {
             try {
                 when (v?.id) {
                     R.id.recordTriggerBTN -> {
-//                        Log.d("runningState",isRunning.toString())
-                        if (isRunning) turnOffRunning() else accessDialog!!.show()
+//                        Log.d("runningState",isRunning.toString());
+                        if (isRunning) turnOffRunning() else accessDialog.show();
                     }
                     R.id.resultView -> {
-                        detailView.visibility = View.VISIBLE
-                        resultView.visibility = View.GONE
+                        detailView.visibility = View.VISIBLE;
+                        resultView.visibility = View.GONE;
                     }
                     R.id.detailView -> {
-                        detailView.visibility = View.GONE
-                        resultView.visibility = View.VISIBLE
+                        detailView.visibility = View.GONE;
+                        resultView.visibility = View.VISIBLE;
                     }
                 }
             } catch (e: Exception) {
-                Log.w("Error!!!!", e.toString())
+                Log.w("Error!!!!", e.toString());
             }
         }
-
     }
 
     inner class SocketWriter : Thread() {
-        private var tempString: String = ""
+        private var tempString: String = "";
         override fun run() {
-            isRunning = true
+            isRunning = true;
             try {
                 //region socket init
                 socket = Socket(host, port);
-                outStream = DataOutputStream(socket!!.getOutputStream())
-                inputFromServer = BufferedReader(InputStreamReader(socket!!.getInputStream()))
-                tempString = inputFromServer.readLine()
+                outStream = DataOutputStream(socket!!.getOutputStream());
+                inputFromServer = BufferedReader(InputStreamReader(socket!!.getInputStream()));
+                tempString = inputFromServer.readLine();
                 runOnUiThread {
                     recordTriggerBTN.text = "Stop";
                     delayTimeTextView.text = tempString;
+                    return@runOnUiThread;
                 }
                 //endregion
-                Log.d("Record", "Start")
-                var xString:String = "1234"
 
-                outStream.writeUTF(xString)
-                outStream.flush()
-                /**
-                waveRecorder.startRecording()
-                runOnUiThread {
-                    Handler().postDelayed({
-                        timer = timer(period = delayTime) {
-                            Log.d("asst", "stop")
-                            waveRecorder.stopRecording()
-                            if (!isRunning) {
-                                turnOffRunning()
-                                return@timer
-                            }
-                            fileSender()
-                            detailUpdater()
-                            if (!isRunning) {
-                                turnOffRunning()
-                                return@timer
-                            }
-                            Log.d("Record", "Start")
-                            waveRecorder.startRecording()
-                        }
-                    }, delayTime)
+                Log.d("Record", "Start");
+                //region record
+                waveRecorder.startRecording();
+                sleep(6500);
+                while (isRunning || !socket!!.isClosed) {
+                    waveRecorder.stopRecording();
+                    if (!fileSender())
+                        break;
+                    detailUpdater();
+                    waveRecorder.startRecording();
+                    sleep(6000);
                 }
-**/
+                //endregion
+            } catch (e: InterruptedException) {
+                waveRecorder.stopRecording();
+                println("interrupt");
+                return;
             } catch (e: Exception) {
-                turnOffRunning(e)
+                turnOffRunning(e);
+                return;
             }
+            return;
         }
     }
 
     fun detailUpdater() {
-        var inputString: String
-        var ReadedString: String = ""
+        Log.d("point","Receiving result from server");
         try {
+            val readiedString = inputFromServer.readLine();
+            Log.d("ReadData  \n", readiedString);
+            runOnUiThread{
 
-            inputString = inputFromServer.readLine()
-            while (inputString.equals("endData")) {
-                ReadedString += inputString
             }
-            Log.d("ReadData", ReadedString)
         } catch (e: Exception) {
-            turnOffRunning(e)
+            turnOffRunning(e);
         }
     }
 
-    fun fileSender() {
+    fun fileSender(): Boolean {
         try {
-            var fileInputStream: FileInputStream = FileInputStream(filePath)
-            var buffer: ByteArray = ByteArray(1024)
-            var readBytes: Int
-            var len: Int = 1
-            var lines: Int = 0
-            var lineString:String
-            while (len > 0) {
-                len = fileInputStream.read(buffer)
-                lines++
-            }
-            fileInputStream.close()
-            fileInputStream = FileInputStream(filePath)
+            val wavFile = File(filePath);
+            val dataSize: Int = wavFile.length().toInt();
+            val bufferFromFile: BufferedInputStream = BufferedInputStream(FileInputStream(wavFile));
+            var data: ByteArray = ByteArray(dataSize);
 
-            lineString = lines.toString()
-            Log.d("Lines",lineString)
-            outStream.writeUTF(lineString)
-            outStream.flush()
-            readBytes = fileInputStream.read(buffer)
-            /**
-            while (readBytes > 0) {
-                outStream.write(buffer, 0, readBytes)
-                readBytes = fileInputStream.read(buffer)
-            }**/
-            while(lines>1) {
-                lines--
-                outStream.write(buffer, 0, readBytes)
-                readBytes = fileInputStream.read(buffer)
-            }
-            outStream.flush()
-            fileInputStream.close()
+            bufferFromFile.read(data, 0, data.size);
+            outStream.writeUTF(data.size.toString());
+            outStream.flush();
+            Thread.sleep(500);
+            Log.d("Check", "Start Sending File\n Size : " + dataSize.toString());
+            outStream.write(data);
+            outStream.flush();
+            Log.d("Check", "All Sended");
+            Thread.sleep(500);
+            bufferFromFile.close();
+            Log.d("check","fin");
+            return true;
         } catch (e: Exception) {
-            turnOffRunning(e)
-        }
-
-    }
-/**
-    fun fileSender() {
-        try {
-            var fileReader: DataInputStream = DataInputStream(FileInputStream(File(filePath)))
-            var buffer: ByteArray = ByteArray(1024)
-            var readBytes: Int = fileReader.read(buffer)
-
-
-            var len: Int = 1
-            var lines: Int = 0
-            while (len > 0) {
-                len = fileReader.read(buffer)
-                lines++
-            }
-            Log.d("Lines",lines.toString())
-            fileReader.close()
-            fileReader = DataInputStream(FileInputStream(File(filePath)))
-
-            while (readBytes > 0) {
-                outStream.write(buffer, 0, readBytes)
-                readBytes = fileReader.read(buffer)
-            }
-            fileReader.close()
-        } catch (e: Exception) {
-            turnOffRunning(e)
-        }
-    }
-**/
-    inner class ThreadReader : Thread() {
-        override fun run() {
-            try {
-                Log.d("check123", "Reading From Server")
-                while (isRunning && !socket!!.isClosed) {
-                    inComingValue = inputFromServer!!.readLine()
-                    runOnUiThread(areaViewUpdater())
-                    //change TextView
-                }
-                turnOffRunning()
-            } catch (e: Exception) {
-                turnOffRunning(e)
-            }
+            turnOffRunning(e);
+            return false;
         }
     }
 
-    inner class areaViewUpdater : Runnable {
-        override fun run() {
-            areaValueTextView!!.text = inComingValue
-        }
-    }
 
 
     override fun onDestroy() {
@@ -320,7 +250,7 @@ class MainActivity : AppCompatActivity() {
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
         //region check permission
-        var hasPermission: Boolean = true
+        var hasPermission: Boolean = true;
         for (permission in permissionList) {
             hasPermission = hasPermission && (ContextCompat.checkSelfPermission(
                 this,
