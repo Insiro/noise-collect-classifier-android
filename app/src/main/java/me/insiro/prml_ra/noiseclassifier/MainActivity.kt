@@ -77,7 +77,6 @@ class MainActivity : AppCompatActivity() {
         waveRecorder.waveConfig.sampleRate = SAMPLE_RATE;
         waveRecorder.waveConfig.channels = RECORDER_CHANNELS;
         waveRecorder.waveConfig.audioEncoding = AUDIO_ENCODING;
-        waveRecorder.onAmplitudeListener = { Log.i("TAG", "Amplitude : $it") };
         //endregion
 
         getPermission();
@@ -128,7 +127,6 @@ class MainActivity : AppCompatActivity() {
             try {
                 when (v?.id) {
                     R.id.recordTriggerBTN -> {
-//                        Log.d("runningState",isRunning.toString());
                         if (isRunning) turnOffRunning() else accessDialog.show();
                     }
                     R.id.resultView -> {
@@ -189,12 +187,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun detailUpdater() {
-        Log.d("point","Receiving result from server");
         try {
             val readiedString = inputFromServer.readLine();
             Log.d("ReadData  \n", readiedString);
+            val seperater=readiedString.split(' ')
             runOnUiThread{
-
+                areaValueTextView.text =seperater[0]
+                subResultTextView.text = seperater.subList(1,seperater.size).joinToString("\n")
             }
         } catch (e: Exception) {
             turnOffRunning(e);
@@ -212,13 +211,11 @@ class MainActivity : AppCompatActivity() {
             outStream.writeUTF(data.size.toString());
             outStream.flush();
             Thread.sleep(500);
-            Log.d("Check", "Start Sending File\n Size : $dataSize");
             outStream.write(data);
             outStream.flush();
-            Log.d("Check", "All Sended");
+            Log.d("Check", "All Send $dataSize datas");
             Thread.sleep(500);
             bufferFromFile.close();
-            Log.d("check","fin");
             return true;
         } catch (e: Exception) {
             turnOffRunning(e);
