@@ -19,39 +19,38 @@ import java.io.*
 import java.net.Socket
 import java.util.*
 
-
 class MainActivity : AppCompatActivity() {
+    private val delayTime: Long = 6000;
+
+    //region Audio Variable
+    private val SAMPLE_RATE: Int = 22050;
     private val filePath: String =
         Environment.getExternalStorageDirectory().absolutePath + "/recordResult.wav";
     private val waveRecorder = WaveRecorder(filePath);
-    private lateinit var writer: Thread;
-    private var timer: Timer? = null;
-    private val btnOnClickListener = BtnOnClickListener();
-    private val delayTime: Long = 6000;
-    private var host = "";
-    private var port = 3389;
+    private val RECORDER_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO;
+    private val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    //endregion
 
     //region Socket
+    private var host = "";
+    private var port = 0;
     private var socket: Socket? = null;
     private var isRunning: Boolean = false;
     private lateinit var inputFromServer: BufferedReader;
     private lateinit var outStream: DataOutputStream;
     //endregion
 
-    //region Audio Variable
-    private val SAMPLE_RATE: Int = 22050;
-    private val RECORDER_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO;
-    private val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-    //endregion
-
-    //Main layout Components
+    //region Main layout Components
     private lateinit var areaValueTextView: TextView;
     private lateinit var delayTimeTextView: TextView;
-    private lateinit var subResultTextView : TextView;
+    private lateinit var subResultTextView: TextView;
 
-    //Dialog layout Components
+    //endregion
+    private var timer: Timer? = null;
+    private val btnOnClickListener = BtnOnClickListener();
     private lateinit var accessDialog: AlertDialog;
-
+    private lateinit var writer: Thread;
+    private lateinit var data: ByteArray;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         accessDialogBuilder.setView(dialogView);
         accessDialogBuilder.setPositiveButton("Access") { _, _ ->
             host = hostEditText.text.toString();
-            val pstring:String = portEditText.text.toString();
+            val pstring: String = portEditText.text.toString();
             if (pstring.toIntOrNull() == null) return@setPositiveButton;
             port = pstring.toInt();
             if (host == "") {
@@ -190,10 +189,10 @@ class MainActivity : AppCompatActivity() {
         try {
             val readiedString = inputFromServer.readLine();
             Log.d("ReadData  \n", readiedString);
-            val seperater=readiedString.split(' ')
-            runOnUiThread{
-                areaValueTextView.text =seperater[0]
-                subResultTextView.text = seperater.subList(1,seperater.size).joinToString("\n")
+            val separated = readiedString.split(' ')
+            runOnUiThread {
+                areaValueTextView.text = separated[0]
+                subResultTextView.text = separated.subList(1, separated.size).joinToString("\n")
             }
         } catch (e: Exception) {
             turnOffRunning(e);
@@ -203,17 +202,17 @@ class MainActivity : AppCompatActivity() {
     fun fileSender(): Boolean {
         try {
             val wavFile = File(filePath);
-            val dataSize: Int = wavFile.length().toInt();
+            data = ByteArray(wavFile.length().toInt());
+            val dataSize: Int = data.size;
             val bufferFromFile: BufferedInputStream = BufferedInputStream(FileInputStream(wavFile));
-            var data: ByteArray = ByteArray(dataSize);
 
-            bufferFromFile.read(data, 0, data.size);
-            outStream.writeUTF(data.size.toString());
+            bufferFromFile.read(data, 0, dataSize);
+            outStream.writeUTF(dataSize.toString());
             outStream.flush();
             Thread.sleep(500);
             outStream.write(data);
             outStream.flush();
-            Log.d("Check", "All Send $dataSize datas");
+            Log.d("Check", "All Send $dataSize data");
             Thread.sleep(500);
             bufferFromFile.close();
             return true;
@@ -222,7 +221,6 @@ class MainActivity : AppCompatActivity() {
             return false;
         }
     }
-
 
 
     override fun onDestroy() {
