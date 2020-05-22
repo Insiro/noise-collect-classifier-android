@@ -18,14 +18,11 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.io.*
 import java.net.Socket
 import java.util.*
-import org.json.JSONObject
 
 
 class MainActivity : AppCompatActivity() {
     private val filePath: String =
         Environment.getExternalStorageDirectory().absolutePath + "/recordResult.wav";
-    private val jsonPath: String =
-        Environment.getExternalStorageDirectory().absolutePath + "/temp.json";
     private val waveRecorder = WaveRecorder(filePath);
     private lateinit var writer: Thread;
     private var timer: Timer? = null;
@@ -33,21 +30,13 @@ class MainActivity : AppCompatActivity() {
     private val delayTime: Long = 6000;
     private var host = "";
     private var port = 3389;
-    private var inComingValue: String = "";
 
-    //Socket
+    //region Socket
     private var socket: Socket? = null;
     private var isRunning: Boolean = false;
     private lateinit var inputFromServer: BufferedReader;
-    private lateinit var outToServer: BufferedWriter;
     private lateinit var outStream: DataOutputStream;
-    private lateinit var jsonInputStream: ObjectInputStream;
-
-    private lateinit var inputStream: InputStream;
-    private lateinit var json: JSONObject;
-    private lateinit var jsonString: String;
-    private lateinit var outputStreams: OutputStream;
-
+    //endregion
 
     //region Audio Variable
     private val SAMPLE_RATE: Int = 22050;
@@ -58,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     //Main layout Components
     private lateinit var areaValueTextView: TextView;
     private lateinit var delayTimeTextView: TextView;
+    private lateinit var subResultTextView : TextView;
 
     //Dialog layout Components
     private lateinit var accessDialog: AlertDialog;
@@ -69,6 +59,7 @@ class MainActivity : AppCompatActivity() {
 
         //region mapping Components
         areaValueTextView = findViewById<TextView>(R.id.result_tv);
+        subResultTextView = findViewById<TextView>(R.id.subResultTxt);
         delayTimeTextView = findViewById<TextView>(R.id.DelayTime);
         val detailViewer: LinearLayout = findViewById<LinearLayout>(R.id.detailView);
         val resultView: LinearLayout = findViewById<LinearLayout>(R.id.resultView);
@@ -93,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         //region accessDialog
         accessDialogBuilder.setTitle("Information for Access server");
         accessDialogBuilder.setView(dialogView);
-        accessDialogBuilder.setPositiveButton("Access") { dialog, id ->
+        accessDialogBuilder.setPositiveButton("Access") { _, _ ->
             host = hostEditText.text.toString();
             val pstring:String = portEditText.text.toString();
             if (pstring.toIntOrNull() == null) return@setPositiveButton;
@@ -175,14 +166,14 @@ class MainActivity : AppCompatActivity() {
                 Log.d("Record", "Start");
                 //region record
                 waveRecorder.startRecording();
-                sleep(6500);
+                sleep(delayTime);
                 while (isRunning || !socket!!.isClosed) {
                     waveRecorder.stopRecording();
                     if (!fileSender())
                         break;
                     detailUpdater();
                     waveRecorder.startRecording();
-                    sleep(6000);
+                    sleep(delayTime);
                 }
                 //endregion
             } catch (e: InterruptedException) {
@@ -221,7 +212,7 @@ class MainActivity : AppCompatActivity() {
             outStream.writeUTF(data.size.toString());
             outStream.flush();
             Thread.sleep(500);
-            Log.d("Check", "Start Sending File\n Size : " + dataSize.toString());
+            Log.d("Check", "Start Sending File\n Size : $dataSize");
             outStream.write(data);
             outStream.flush();
             Log.d("Check", "All Sended");
@@ -238,8 +229,8 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onDestroy() {
-        turnOffRunning()
-        super.onDestroy()
+        turnOffRunning();
+        super.onDestroy();
     }
 
     private fun getPermission() {
@@ -248,17 +239,17 @@ class MainActivity : AppCompatActivity() {
             android.Manifest.permission.INTERNET,
             android.Manifest.permission.ACCESS_NETWORK_STATE,
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
+        );
         //region check permission
         var hasPermission: Boolean = true;
         for (permission in permissionList) {
             hasPermission = hasPermission && (ContextCompat.checkSelfPermission(
                 this,
                 permission
-            ) == PackageManager.PERMISSION_GRANTED)
+            ) == PackageManager.PERMISSION_GRANTED);
         }
         if (!hasPermission) {
-            ActivityCompat.requestPermissions(this, permissionList, 1)
+            ActivityCompat.requestPermissions(this, permissionList, 1);
         }
 
     }

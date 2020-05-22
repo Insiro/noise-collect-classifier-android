@@ -65,6 +65,7 @@
                 style="@style/subResultTxt"
                 android:text="Restaurant\nMarket\nBus\nRoad\nFactory\nCoffeeShop\nSubway\nOffice\nBicycle" />
             <TextView
+                android:id="@+id/subResultTxt"
                 style="@style/subResultTxt"
                 android:text="0%\n0%\n0%\n0%\n0%\n0%\n0%\n0%\n0%"
                 />
