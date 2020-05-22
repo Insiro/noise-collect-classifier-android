@@ -21,6 +21,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private val delayTime: Long = 6000;
+    private val accessPin:Int =5523 ;
 
     //region Audio Variable
     private val SAMPLE_RATE: Int = 22050;
@@ -54,8 +55,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
 
+        supportActionBar!!.setDisplayShowHomeEnabled(true)
         //region mapping Components
         areaValueTextView = findViewById<TextView>(R.id.result_tv);
         subResultTextView = findViewById<TextView>(R.id.subResultTxt);
@@ -152,6 +155,8 @@ class MainActivity : AppCompatActivity() {
                 socket = Socket(host, port);
                 outStream = DataOutputStream(socket!!.getOutputStream());
                 inputFromServer = BufferedReader(InputStreamReader(socket!!.getInputStream()));
+                outStream.writeUTF(accessPin.toString())
+                outStream.flush()
                 tempString = inputFromServer.readLine();
                 runOnUiThread {
                     recordTriggerBTN.text = "Stop";
