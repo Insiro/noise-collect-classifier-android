@@ -58,7 +58,6 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
-        supportActionBar!!.setDisplayShowHomeEnabled(true)
         //region mapping Components
         areaValueTextView = findViewById<TextView>(R.id.result_tv);
         subResultTextView = findViewById<TextView>(R.id.subResultTxt);
