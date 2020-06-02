@@ -8,12 +8,6 @@
         <item name="colorAccent">@color/colorPrimaryDark</item>
     </style>
 
-    <style name="middleLayout">
-        <item name="android:layout_height">0px</item>
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:gravity">center</item>
-        <item name="android:orientation">vertical</item>
-    </style>
 
     <style name="textConfig">
         <item name="android:layout_marginLeft">30px</item>
@@ -31,23 +25,31 @@
     </style>
     <style name="AlertConfig" parent="textConfig">
         <item name="android:textSize">12pt</item>
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
     </style>
     <style name="editTextConfig" parent="AlertConfig">
         <item name="android:gravity">center</item>
         <item name="android:layout_width">match_parent</item>
     </style>
-    <style name="subResultLayout">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-    </style>
-    <style name="subResultTxt" parent="areaTextConfig">
+    <style name="subResultTxt" parent="areaTextConfig" >
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
-        <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_margin">1pt</item>
         <item name="android:textSize">10pt</item>
+    </style>
+    <style name="subLayout">
+        <item name="android:gravity">center</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="middleLayout" parent="subLayout">
+        <item name="android:layout_height">0px</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+    <style name="startModalLayout" parent="subLayout">
+        <item name="android:orientation">horizontal</item>
+        <item name="layout_constraintLeft_toLeftOf">parent</item>
+        <item name="layout_constraintRight_toRightOf">parent</item>
     </style>
 </resources>

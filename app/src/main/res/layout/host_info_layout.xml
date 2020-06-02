@@ -7,13 +7,8 @@
     tools:context=".MainActivity">
 
     <LinearLayout
-        android:gravity="center"
+        style="@style/startModalLayout"
         android:id="@+id/ipLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/portLayout"
         >
@@ -25,20 +20,15 @@
         <EditText
             style="@style/editTextConfig"
             android:id="@+id/editTxt_ip"
-            android:text="192.9.45.72"
+            android:text="210.102.178.27"
             />
     </LinearLayout>
 
     <LinearLayout
-        android:gravity="center"
+        style="@style/startModalLayout"
         android:id="@+id/portLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/saveSelect"
         app:layout_constraintTop_toBottomOf="@id/ipLayout"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="parent"
         >
 
         <TextView
@@ -51,5 +41,22 @@
             android:id="@+id/editTxt_Port"
             android:inputType="number"
             android:text="3389" />
+    </LinearLayout>
+    <LinearLayout
+        style="@style/startModalLayout"
+        android:id="@+id/saveSelect"
+        app:layout_constraintTop_toBottomOf="@id/portLayout"
+        app:layout_constraintBottom_toBottomOf="parent"
+        >
+        <CheckBox
+            style="@style/textConfig"
+            android:id="@+id/saveMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+        <TextView
+            style="@style/textConfig"
+            android:text="Save Data"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

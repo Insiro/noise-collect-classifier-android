@@ -2,6 +2,7 @@
 
 package me.insiro.prml_ra.noiseclassifier
 
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.os.Bundle
@@ -21,7 +22,23 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private val delayTime: Long = 6000;
-    private val accessPin:Int =5523 ;
+    private val accessPin: Int = 5523;
+    private val socWait: Long = 200;
+    private var saveMode: Int = 0;
+    private val envList: List<String> = listOf(
+        "Cancel",
+        "Restaurant",
+        "market",
+        "Bus",
+        "Road",
+        "Factory",
+        "Coffee_shop",
+        "SubWay",
+        "Office",
+        "Bicycle"
+    );
+    private var isSelectWaiting: Boolean = false;
+    private var envValue: Int = 0;
 
     //region Audio Variable
     private val SAMPLE_RATE: Int = 22050;
@@ -45,13 +62,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var areaValueTextView: TextView;
     private lateinit var delayTimeTextView: TextView;
     private lateinit var subResultTextView: TextView;
-
     //endregion
+
     private var timer: Timer? = null;
     private val btnOnClickListener = BtnOnClickListener();
     private lateinit var accessDialog: AlertDialog;
     private lateinit var writer: Thread;
     private lateinit var data: ByteArray;
+
+    private lateinit var setListDialogBuilder: AlertDialog.Builder
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,23 +85,18 @@ class MainActivity : AppCompatActivity() {
         val detailViewer: LinearLayout = findViewById<LinearLayout>(R.id.detailView);
         val resultView: LinearLayout = findViewById<LinearLayout>(R.id.resultView);
         val recordTrigger: Button = findViewById<Button>(R.id.recordTriggerBTN);
-        val accessDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(this);
-        val dialogView = layoutInflater.inflate(R.layout.host_info_layout, null);
-        val hostEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_ip);
-        val portEditText: EditText = dialogView.findViewById<EditText>(R.id.editTxt_Port);
+
         recordTrigger.setOnClickListener(btnOnClickListener);
         detailViewer.setOnClickListener(btnOnClickListener);
         resultView.setOnClickListener(btnOnClickListener);
         //endregion
 
-        //region waveRecorder Config
-        waveRecorder.waveConfig.sampleRate = SAMPLE_RATE;
-        waveRecorder.waveConfig.channels = RECORDER_CHANNELS;
-        waveRecorder.waveConfig.audioEncoding = AUDIO_ENCODING;
-        //endregion
-
-        getPermission();
         //region accessDialog
+        val accessDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(this);
+        val dialogView = layoutInflater.inflate(R.layout.host_info_layout, null);
+        val hostEditText: EditText = dialogView.findViewById(R.id.editTxt_ip) as EditText;
+        val portEditText: EditText = dialogView.findViewById(R.id.editTxt_Port) as EditText;
+        val saveCheckBox: CheckBox = dialogView.findViewById<CheckBox>(R.id.saveMode);
         accessDialogBuilder.setTitle("Information for Access server");
         accessDialogBuilder.setView(dialogView);
         accessDialogBuilder.setPositiveButton("Access") { _, _ ->
@@ -89,6 +104,7 @@ class MainActivity : AppCompatActivity() {
             val pstring: String = portEditText.text.toString();
             if (pstring.toIntOrNull() == null) return@setPositiveButton;
             port = pstring.toInt();
+            saveMode = if (saveCheckBox.isChecked) 1 else 0;
             if (host == "") {
                 Toast.makeText(applicationContext, "need To insert IP", Toast.LENGTH_SHORT).show();
             } else {
@@ -99,6 +115,29 @@ class MainActivity : AppCompatActivity() {
         accessDialogBuilder.setNegativeButton("Cancel", null);
         accessDialog = accessDialogBuilder.create();
         //endregion
+
+        //region setListDialog
+        setListDialogBuilder = AlertDialog.Builder(this)
+        val adapter: ArrayAdapter<String> =
+            ArrayAdapter<String>(this, R.layout.list_item_layout, R.id.list_item, envList)
+        setListDialogBuilder.setCancelable(false)
+        setListDialogBuilder.setAdapter(adapter, DialogItemClickListener())
+        //endregion
+
+        //region waveRecorder Config
+        waveRecorder.waveConfig.sampleRate = SAMPLE_RATE;
+        waveRecorder.waveConfig.channels = RECORDER_CHANNELS;
+        waveRecorder.waveConfig.audioEncoding = AUDIO_ENCODING;
+        //endregion
+
+        getPermission();
+    }
+
+    inner class DialogItemClickListener : DialogInterface.OnClickListener {
+        override fun onClick(dialog: DialogInterface?, which: Int) {
+            envValue = which;
+            isSelectWaiting = false;
+        }
 
     }
 
@@ -118,7 +157,10 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace();
         } finally {
             waveRecorder.stopRecording();
-            runOnUiThread { recordTriggerBTN.text = "Record" };
+            runOnUiThread {
+                recordTriggerBTN.text = "Record";
+                delayTimeTextView.text = "-";
+            };
             isRunning = false;
         }
     }
@@ -140,7 +182,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                Log.w("Error!!!!", e.toString());
+                Log.w("Error!!!!", "$e");
             }
         }
     }
@@ -151,16 +193,24 @@ class MainActivity : AppCompatActivity() {
             isRunning = true;
             try {
                 //region socket init
+                runOnUiThread {
+                    recordTriggerBTN.text = "Stop";
+                    delayTimeTextView.text = "waiting for Server";
+                    return@runOnUiThread;
+                }
                 socket = Socket(host, port);
                 outStream = DataOutputStream(socket!!.getOutputStream());
                 inputFromServer = BufferedReader(InputStreamReader(socket!!.getInputStream()));
-                outStream.writeUTF(accessPin.toString())
-                outStream.flush()
+                sendStrBySoc("$saveMode");
+                sendStrBySoc("$accessPin");
                 tempString = inputFromServer.readLine();
                 runOnUiThread {
-                    recordTriggerBTN.text = "Stop";
                     delayTimeTextView.text = tempString;
                     return@runOnUiThread;
+                }
+                if (tempString == "fail") {
+                    turnOffRunning()
+                    return
                 }
                 //endregion
 
@@ -170,8 +220,14 @@ class MainActivity : AppCompatActivity() {
                 sleep(delayTime);
                 while (isRunning || !socket!!.isClosed) {
                     waveRecorder.stopRecording();
-                    if (!fileSender())
-                        break;
+                    if (saveMode == 1) {
+                        isSelectWaiting = true;
+                        runOnUiThread { setListDialogBuilder.show(); }
+                        while (isSelectWaiting) sleep(200);
+                        sendStrBySoc("$envValue");
+                        if (envValue ==0) break;
+                    }
+                    if (!fileSender()) break;
                     detailUpdater();
                     waveRecorder.startRecording();
                     sleep(delayTime);
@@ -179,50 +235,56 @@ class MainActivity : AppCompatActivity() {
                 //endregion
             } catch (e: InterruptedException) {
                 waveRecorder.stopRecording();
+                turnOffRunning()
                 println("interrupt");
                 return;
             } catch (e: Exception) {
                 turnOffRunning(e);
                 return;
             }
+            turnOffRunning()
             return;
         }
-    }
 
-    fun detailUpdater() {
-        try {
-            val readiedString = inputFromServer.readLine();
-            Log.d("ReadData  \n", readiedString);
-            val separated = readiedString.split(' ')
-            runOnUiThread {
-                areaValueTextView.text = separated[0]
-                subResultTextView.text = separated.subList(1, separated.size).joinToString("\n")
-            }
-        } catch (e: Exception) {
-            turnOffRunning(e);
+        private fun sendStrBySoc(str: String) {
+            outStream.writeUTF(str)
+            outStream.flush()
+            sleep(socWait);
         }
-    }
 
-    fun fileSender(): Boolean {
-        try {
-            val wavFile = File(filePath);
-            data = ByteArray(wavFile.length().toInt());
-            val dataSize: Int = data.size;
-            val bufferFromFile: BufferedInputStream = BufferedInputStream(FileInputStream(wavFile));
+        private fun fileSender(): Boolean {
+            try {
+                val wavFile = File(filePath);
+                data = ByteArray(wavFile.length().toInt());
+                val dataSize: Int = data.size;
+                val bufferFromFile: BufferedInputStream =
+                    BufferedInputStream(FileInputStream(wavFile));
+                bufferFromFile.read(data, 0, dataSize);
+                sendStrBySoc("$dataSize")
+                outStream.write(data);
+                outStream.flush();
+                Log.d("Check", "All Send $dataSize data");
+                sleep(socWait);
+                bufferFromFile.close();
+                return true;
+            } catch (e: Exception) {
+                turnOffRunning(e);
+                return false;
+            }
+        }
 
-            bufferFromFile.read(data, 0, dataSize);
-            outStream.writeUTF(dataSize.toString());
-            outStream.flush();
-            Thread.sleep(500);
-            outStream.write(data);
-            outStream.flush();
-            Log.d("Check", "All Send $dataSize data");
-            Thread.sleep(500);
-            bufferFromFile.close();
-            return true;
-        } catch (e: Exception) {
-            turnOffRunning(e);
-            return false;
+        private fun detailUpdater() {
+            try {
+                val readiedString = inputFromServer.readLine();
+                Log.d("ReadData  \n", readiedString);
+                val separated = readiedString.split(' ')
+                runOnUiThread {
+                    areaValueTextView.text = separated[0]
+                    subResultTextView.text = separated.subList(1, separated.size).joinToString("\n")
+                }
+            } catch (e: Exception) {
+                turnOffRunning(e);
+            }
         }
     }
 
@@ -253,6 +315,8 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
 }
+
 
 
