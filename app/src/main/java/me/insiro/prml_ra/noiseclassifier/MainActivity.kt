@@ -142,7 +142,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun turnOffRunning(e: Exception? = null) {
-        e?.printStackTrace();
         Log.d("state", "stop");
         writer.interrupt();
         timer?.cancel();
@@ -162,6 +161,12 @@ class MainActivity : AppCompatActivity() {
                 delayTimeTextView.text = "-";
             };
             isRunning = false;
+        }
+        if (e!=null){
+            e?.printStackTrace();
+            runOnUiThread {Toast.makeText(applicationContext, "Disconnected With Server", Toast.LENGTH_SHORT).show();
+                delayTimeTextView.text = "Disconnected";
+            }
         }
     }
 
