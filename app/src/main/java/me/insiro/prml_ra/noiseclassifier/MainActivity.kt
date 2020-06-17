@@ -41,10 +41,10 @@ class MainActivity : AppCompatActivity() {
     private var envValue: Int = 0;
 
     //region Audio Variable
-    private val SAMPLE_RATE: Int = 22050;
     private val filePath: String =
         Environment.getExternalStorageDirectory().absolutePath + "/recordResult.wav";
     private val waveRecorder = WaveRecorder(filePath);
+    private val SAMPLE_RATE: Int = 22050;
     private val RECORDER_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO;
     private val AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     //endregion
@@ -141,17 +141,16 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun turnOffRunning(e: Exception? = null) {
+    private fun turnOffRunning(e: Exception? = null) { // on terminate Running
         Log.d("state", "stop");
+        //stop Thread
         writer.interrupt();
-        timer?.cancel();
         try {
             timer?.cancel();
             if (socket != null) {
                 socket?.close();
                 socket = null;
             }
-
         } catch (e: Exception) {
             e.printStackTrace();
         } finally {
@@ -162,6 +161,7 @@ class MainActivity : AppCompatActivity() {
             };
             isRunning = false;
         }
+        //notify disconnection
         if (e!=null){
             e?.printStackTrace();
             runOnUiThread {Toast.makeText(applicationContext, "Disconnected With Server", Toast.LENGTH_SHORT).show();
@@ -193,48 +193,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class SocketWriter : Thread() {
-        private var tempString: String = "";
+        private var connectionState: String = "";
         override fun run() {
-            isRunning = true;
             try {
-                //region socket init
+                //change record button to Stop button / show waiting Server state On State Viewer
+                isRunning = true;
                 runOnUiThread {
                     recordTriggerBTN.text = "Stop";
                     delayTimeTextView.text = "waiting for Server";
                     return@runOnUiThread;
                 }
+                //region socket init
                 socket = Socket(host, port);
                 outStream = DataOutputStream(socket!!.getOutputStream());
                 inputFromServer = BufferedReader(InputStreamReader(socket!!.getInputStream()));
+                // send file save in Server Or Not ( 1 : save on server)
                 sendStrBySoc("$saveMode");
+                // authorize key
                 sendStrBySoc("$accessPin");
-                tempString = inputFromServer.readLine();
+                // get connection state from Server : fail or Delay time
+                connectionState = inputFromServer.readLine();
                 runOnUiThread {
-                    delayTimeTextView.text = tempString;
+                    delayTimeTextView.text = connectionState;
                     return@runOnUiThread;
                 }
-                if (tempString == "fail") {
+                if (connectionState == "fail") {
                     turnOffRunning()
                     return
                 }
                 //endregion
 
-                Log.d("Record", "Start");
                 //region record
                 waveRecorder.startRecording();
+                //waiting for recording
                 sleep(delayTime);
                 while (isRunning || !socket!!.isClosed) {
                     waveRecorder.stopRecording();
+                    // if user select saveMode
                     if (saveMode == 1) {
                         isSelectWaiting = true;
+                        //show Modal for Select Current Env
                         runOnUiThread { setListDialogBuilder.show(); }
+                        //waiting for modal closed
                         while (isSelectWaiting) sleep(200);
                         sendStrBySoc("$envValue");
+                        // if user select cancel , terminate
                         if (envValue ==0) break;
                     }
+                    //if sending file has error
                     if (!fileSender()) break;
-                    detailUpdater();
+                    resultUpdater();
                     waveRecorder.startRecording();
+                    //waiting for recording
                     sleep(delayTime);
                 }
                 //endregion
@@ -251,21 +261,24 @@ class MainActivity : AppCompatActivity() {
             return;
         }
 
-        private fun sendStrBySoc(str: String) {
+        private fun sendStrBySoc(str: String) { // send simple string
             outStream.writeUTF(str)
             outStream.flush()
             sleep(socWait);
         }
 
-        private fun fileSender(): Boolean {
+        private fun fileSender(): Boolean { // send saved record file
             try {
                 val wavFile = File(filePath);
                 data = ByteArray(wavFile.length().toInt());
                 val dataSize: Int = data.size;
                 val bufferFromFile: BufferedInputStream =
                     BufferedInputStream(FileInputStream(wavFile));
+                //get and send buffer size
                 bufferFromFile.read(data, 0, dataSize);
                 sendStrBySoc("$dataSize")
+
+                //send file
                 outStream.write(data);
                 outStream.flush();
                 Log.d("Check", "All Send $dataSize data");
@@ -278,7 +291,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        private fun detailUpdater() {
+        private fun resultUpdater() {
+            //update result viewer : current state, predicted result
             try {
                 val readiedString = inputFromServer.readLine();
                 Log.d("ReadData  \n", readiedString);
@@ -317,10 +331,7 @@ class MainActivity : AppCompatActivity() {
         if (!hasPermission) {
             ActivityCompat.requestPermissions(this, permissionList, 1);
         }
-
     }
-
-
 }
 
 
